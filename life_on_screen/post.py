@@ -29,7 +29,7 @@ VIG = (1 - 0.30 * np.clip(r2 / 0.75, 0, 1) ** 1.5).astype(np.float32)[..., None]
 
 def glow(cv):
     core = cv2.GaussianBlur(cv, (0, 0), 1.6) * 0.7
-    halo = cv2.GaussianBlur(cv, (0, 0), 9) * 0.45 + cv2.GaussianBlur(cv, (0, 0), 28) * 0.30
+    halo = cv2.GaussianBlur(cv, (0, 0), 7) * 0.40 + cv2.GaussianBlur(cv, (0, 0), 20) * 0.24   # tighter than v4
     out = (cv + core * 0.6 + halo) * SCAN
     m = out.max(axis=2, keepdims=True)
     return out / np.maximum(1.0, m / 255.0)

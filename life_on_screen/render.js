@@ -17,7 +17,7 @@ const T = {
   m2: [136, 148],         // marker "a flash of light." once the scroll has settled (on "nuclear")
   black: 166,             // hard cut to black (white-out itself is done in post.py from f156)
 };
-const Z_WIDE = 1.22, Z_CLOSE = 3.0;   // wide: the monitor nearly fills frame; close: a big depth-of-field crop
+const Z_WIDE = 1.22, Z_CLOSE = 2.1;   // wide: the monitor nearly fills frame; close: a big depth-of-field crop
 
 // --- curves -----------------------------------------------------------------
 function bezier(x1, y1, x2, y2) {
