@@ -30,7 +30,7 @@ VIG = (1 - 0.30 * np.clip(r2 / 0.75, 0, 1) ** 1.5).astype(np.float32)[..., None]
 def glow(cv):
     core = cv2.GaussianBlur(cv, (0, 0), 1.6) * 0.7
     halo = cv2.GaussianBlur(cv, (0, 0), 7) * 0.40 + cv2.GaussianBlur(cv, (0, 0), 20) * 0.24   # tighter than v4
-    out = (cv + core * 0.6 + halo) * SCAN
+    out = (cv + core * 0.3 + halo) * SCAN      # light core bloom so dark ink on the marker stays dark
     m = out.max(axis=2, keepdims=True)
     return out / np.maximum(1.0, m / 255.0)
 
@@ -77,7 +77,15 @@ def main():
             e = ease_in(t)
             cv = cv * (1 + 6 * e) + 255 * e * e
             cv = np.clip(cv, 0, 255)
+        raw = cv.copy()
         cv = glow(cv)
+        # keep the ink on the highlighter dark: where dark pixels sit on the lime bar, undo the glow
+        bar = ((raw[..., 1] > 120) & (raw[..., 0] < 90)).astype(np.uint8)       # lime pixels (BGR)
+        bar = cv2.morphologyEx(bar, cv2.MORPH_CLOSE, np.ones((11, 11), np.uint8))  # fill the letters
+        bar = cv2.erode(bar, np.ones((5, 5), np.uint8))                           # stay inside the bar
+        lum = raw.max(axis=2) / 255.0
+        ink = (cv2.GaussianBlur(bar.astype(np.float32), (0, 0), 0.8) * np.clip((0.55 - lum) / 0.3, 0, 1))[..., None]
+        cv = cv * (1 - ink) + raw * SCAN * ink
         cv = np.dstack([cv2.remap(np.ascontiguousarray(cv[..., c]), *MAPS[c], cv2.INTER_LINEAR, borderValue=0)
                         for c in range(3)])
         if n < WAR:

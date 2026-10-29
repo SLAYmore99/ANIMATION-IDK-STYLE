@@ -75,7 +75,7 @@ function buildMarker(id, rects, p, glow, op){
   const src=document.getElementById(id).closest('p');
   rects.forEach((r,i)=>{
     const w=Math.max(0,Math.min(r.w,done)); done-=r.w; if(w<=0) return;
-    const top=r.y+r.h*0.17, h=r.h*0.72;
+    const top=r.y+r.h*0.15, h=r.h*0.84;   // cap height to the bottom of descenders (g, y, p stay inked)
     const bar=document.createElement('div'); bar.className='bar';
     Object.assign(bar.style,{left:r.x-3+'px',top:top+'px',width:w+6+'px',height:h+'px',
       boxShadow:`0 0 7px rgba(204,255,0,${0.30*glow})`});
