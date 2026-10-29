@@ -1,5 +1,7 @@
 # CLAUDE.md: Rachit's animation style (handoff from the Twitter-feed session, 2026-10-29)
 
+> **Working on the "small steps → too late" animation (change03)?** Read [`CONTEXT_small_steps_too_late.md`](CONTEXT_small_steps_too_late.md) first. It has the measured breakdown of the existing clip, its pixel/CRT recipes and the questions to ask Rachit. Where it is more specific than this file (pixel world, glow, transfers), it wins for that animation.
+
 Paste this file at the root of a new repo. Claude Code reads it automatically. It holds everything learned while building the Twitter/X feed animation for the "Claude Nine" YouTube intro: the look, the glow, the fonts, the motion taste, the exact numbers measured from his references, what he approved and rejected, and the technical recipes that worked. Use it for every animation.
 
 ---
@@ -47,8 +49,10 @@ What he wants, learned from repeated feedback:
 - **Highlighter bar:** `box-shadow: 0 0 14px rgba(204,255,0,0.28)`. Black letters on the bar have no glow.
 - **Claude orange elements:** `box-shadow: 0 0 10px rgba(217,119,87,0.55)`.
 - From the intro's style lock (for the pixel/CRT world of the other animations in the same intro): a **two-layer screen glow** on everything: a tight bloom (~2 px) so edges hit full white, plus a soft wide halo (15-45 px) that fades out. It should feel like light from a screen in a dark room, and it must look identical when the transparent file sits over his black.
+- **Exact pixel-world glow (battle-tested, from the context file):** bloom Gaussian σ≈1.6 ×0.7, halo σ≈9 ×0.6 + σ≈28 ×0.42, faint scanlines (every third row ×0.90), then a **hue-preserving tonemap** (`out /= max(1, maxchannel/255)`) so orange doesn't bleach to white. Light on black → straight alpha via `a = max(rgb)/255`, `col = rgb/a`. In the pixel world, use orange core **`#FF7A3D`** (≈255,108,40) with halo `#D97757`; plain `#D97757` alone goes muddy when it glows. White humans ≈ rgb(236,236,232). Red is used for "it has turned".
 
 ### Fonts
+- **His "idk fonts" (supplied by him; ask for the files, they're not in the repo):** **Neue Montreal** (Bold/Medium, etc.) and **Instrument Serif**. For pixel type, rasterise Neue Montreal Bold onto the art-pixel grid.
 - **UI text:** X uses **Chirp** (not free). He hasn't supplied it, so **Inter** is the stand-in (regular 15 px body / 20 px line in phone points, bold names). Ask for Chirp if the UI must be exact.
 - **Emoji:** Noto Color Emoji.
 - Intro style lock, for the pixel/CRT animations: bitmap/terminal faces: condensed terminal caps for labels, lowercase terminal for typed text, chunky game caps for titles. Typing uses a block cursor and is stepped (4-5 characters per step).
@@ -114,7 +118,7 @@ His reference "Blur and Scroll Through" (Envato Twitter template, light mode) at
 - Long videos: pull only the segment with ffmpeg. ffmpeg needs the proxy set explicitly in a cloud container: `export http_proxy=$HTTPS_PROXY` and `-ca_file /root/.ccr/ca-bundle.crt`.
 - X search pages need a login; find posts by web search instead.
 
-**Speech-to-text for word timings:** `pip install faster-whisper`, model `small.en`, `word_timestamps=True`. Feed it a numpy array (its own audio loader failed with the installed `av` version). Whisper spells "Claude Code" as "cloud code"; it may also invent words at the very end of a clip.
+**Speech-to-text for word timings** (works when the environment has full internet; otherwise use audio energy + fricative onsets and ask him to confirm by ear): `pip install faster-whisper`, model `small.en`, `word_timestamps=True`. Feed it a numpy array (its own audio loader failed with the installed `av` version). Whisper spells "Claude Code" as "cloud code"; it may also invent words at the very end of a clip.
 
 **SFX (when no library is available):** synthesise. Whooshes = band-passed pink/white noise whose level and brightness follow the scroll's speed curve (peaks on the fastest frame, fades through the settle); soft 2.35 kHz ticks on each highlight start; a gentle low tap on the section's in-animation. Keep it subtle: whoosh peaks about −24 dBFS, ticks −26, under a VO around −14. Deliver as its own 48 kHz 24-bit stereo .wav stem.
 
@@ -131,7 +135,7 @@ His reference "Blur and Scroll Through" (Envato Twitter template, light mode) at
 - **Preview:** 540p MP4 with VO + SFX (`--scale=0.5`).
 - **HD:** 1080p H.264 MP4 (CRF ~14) with VO + SFX, plus **ProRes 4444 with alpha** (`--codec=prores --prores-profile=4444 --pixel-format=yuva444p10le --image-format=png --muted`), plus the **SFX stem .wav** separately. When he asks for "just the MP4 and SFX", send only those.
 - Re-encode source clips at full resolution for HD (previews can use 960-wide copies).
-- **Big files** (ProRes is ~30 MB per second): too big for GitHub (100 MB/file) and transfer tools have altered .mov headers before. Split with `split -b 95m -d -a 1 file.mov file.mov.part`, check `cat parts | md5sum` equals the original, and send a Windows `.bat` that runs `copy /b part0 + part1 + ... file.mov` then `certutil -hashfile file.mov MD5`. (A split zip failed to verify; plain binary split is reliable.)
+- **Big files** (ProRes is ~30 MB per second): too big for GitHub (100 MB/file), and his file-transfer tool alters .mov/.mp4 headers. **Default (from the change03 chat, where a plain split corrupted the ProRes header):** split into 24 MB parts, XOR every byte with `0x5A`, send; he un-XORs and joins on the computer, then checks the md5 against the original. In the Twitter session, plain 95 MB binary parts sent through the Claude app (+ a Windows `.bat` running `copy /b ...` then `certutil -hashfile ... MD5`) rejoined to the right md5 here. Always give him the md5 and a join script, whichever method. (A split zip failed to verify; don't use it.)
 - No After Effects Dynamic Link. Premiere: animation on a video track, SFX stem on its own audio track.
 - Always give full file paths and keep every version (new file per version, git tags for cuts he may come back to).
 
