@@ -1,0 +1,130 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:'IBM Plex Sans';font-weight:300;src:url(fonts/IBMPlexSans-300.ttf)}
+@font-face{font-family:'IBM Plex Sans';font-weight:400;src:url(fonts/IBMPlexSans-400.ttf)}
+@font-face{font-family:'IBM Plex Sans';font-weight:500;src:url(fonts/IBMPlexSans-500.ttf)}
+@font-face{font-family:'IBM Plex Mono';font-weight:400;src:url(fonts/IBMPlexMono-400.ttf)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#000}
+/* the monitor: 1440x810 logical px, real babuschk.in styles inside */
+#screen{position:absolute;width:1440px;height:810px;overflow:hidden;border-radius:16px;
+  background:#0a0a0b;font-family:'IBM Plex Sans',sans-serif;font-size:18px;color:#fff;
+  -webkit-font-smoothing:antialiased}
+#page{position:absolute;left:0;top:0;width:1440px}
+.nav{height:80px;display:flex;align-items:center;justify-content:space-between;padding:0 36px}
+.nav-logo{font-weight:300;font-size:19.8px;letter-spacing:.05em;opacity:.9}
+.nav-links{display:flex;gap:36px;font-size:16.2px;opacity:.7}
+.post{max-width:720px;margin:0 auto;padding:64px 36px 400px}
+.post-title{font-size:45px;font-weight:300;letter-spacing:-.02em;line-height:1.2;margin-bottom:9px}
+.post-date{font-family:'IBM Plex Mono',monospace;font-size:15.3px;color:rgba(255,255,255,.4);margin-bottom:72px}
+.content{line-height:1.55}
+.content p{color:rgba(255,255,255,.8);margin-bottom:18px}
+.content p.lead{color:#fff;font-size:20.7px}
+.content h2{font-size:36px;font-weight:300;letter-spacing:-.02em;line-height:1.2;margin:72px 0 18px}
+.dimmable{transition:none}
+/* vignette of the panel itself (screen space) */
+#vig{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 75% 70% at 50% 50%,rgba(0,0,0,0) 55%,rgba(0,0,0,.55) 100%)}
+.bar{position:absolute;border-radius:2.5px;background:#FF7A3D;pointer-events:none}
+.clip{position:absolute;overflow:hidden;pointer-events:none}
+.clip .ghost{position:absolute}
+.clip .ghost,.clip .ghost *{color:#000!important;text-shadow:none!important;filter:none!important;opacity:1!important}
+</style></head>
+<body>
+<div id="screen">
+  <div id="page">
+    <div class="nav"><div class="nav-logo">Igor Babuschkin</div>
+      <div class="nav-links"><span>About</span><span>Blog</span><span>Now</span><span>Contact</span><span>𝕏</span></div></div>
+    <article class="post">
+      <h1 class="post-title" id="title">Life on Claude Nine</h1>
+      <div class="post-date" id="date">January 25, 2026</div>
+      <div class="content" id="content"></div>
+    </article>
+  </div>
+  <div id="marks"></div>
+  <div id="vig"></div>
+</div>
+<script>
+const SW=1440, SH=810;
+const screen=document.getElementById('screen'), page=document.getElementById('page');
+// content is injected by the renderer before init()
+function lineRects(el){ // per-line rects of an inline span, in page coords
+  const pr=page.getBoundingClientRect(), z=parseFloat(getComputedStyle(screen).zoom)||1;
+  const out=[];
+  for(const r of el.getClientRects()) out.push({x:r.left/z-pr.left/z, y:r.top/z-pr.top/z, w:r.width/z, h:r.height/z});
+  return out;
+}
+function lineOf(el){ const r=lineRects(el)[0]; return r.y + r.h/2; }
+let GEO=null;
+function init(){
+  screen.style.zoom=1; page.style.top='0px';
+  [...document.querySelectorAll('.nav,#title,#date,#content>*')].forEach((b,i)=>b.dataset.k=i);
+  GEO={hl1:lineRects(document.getElementById('hl1')), hl2:lineRects(document.getElementById('hl2'))};
+  GEO.y1=GEO.hl1[0].y+GEO.hl1[0].h/2; GEO.y2=GEO.hl2[0].y+GEO.hl2[0].h/2;
+  GEO.k1=document.getElementById('hl1').closest('p').dataset.k; GEO.k2=document.getElementById('hl2').closest('p').dataset.k;
+  return GEO;
+}
+// Marker per CLAUDE.md: shorter than line box, line by line, soft 6pt leading edge that
+// shrinks to nothing over the last 12%, black text only behind the solid part.
+function buildMarker(id, rects, p, glow, op){
+  const m=document.createElement('div'); m.style.opacity=op; document.getElementById('marks').appendChild(m);
+  const total=rects.reduce((a,r)=>a+r.w,0); let done=p*total;
+  const edge=6*Math.min(1,(1-p)/0.12);
+  const src=document.getElementById(id).closest('p');
+  rects.forEach((r,i)=>{
+    const w=Math.max(0,Math.min(r.w,done)); done-=r.w; if(w<=0) return;
+    const top=r.y+r.h*0.14, h=r.h*0.80;
+    const bar=document.createElement('div'); bar.className='bar';
+    Object.assign(bar.style,{left:r.x-3+'px',top:top+'px',width:w+6+'px',height:h+'px',
+      boxShadow:`0 0 14px rgba(255,122,61,${0.35*glow})`});
+    const solid=(w<r.w)?Math.max(0,w+6-edge):w+6;
+    if(w<r.w && edge>0) bar.style.webkitMaskImage=`linear-gradient(to right,#000 ${solid}px,transparent ${w+6}px)`;
+    m.appendChild(bar);
+    const c=document.createElement('div'); c.className='clip';
+    Object.assign(c.style,{left:r.x-3+'px',top:top+'px',width:solid+'px',height:h+'px'});
+    const g=src.cloneNode(true); g.className='ghost'; g.removeAttribute('style');
+    const sr=src.getBoundingClientRect(), pr=page.getBoundingClientRect(), z=parseFloat(getComputedStyle(screen).zoom)||1;
+    Object.assign(g.style,{left:(sr.left-pr.left)/z-(r.x-3)+'px',top:(sr.top-pr.top)/z-top+'px',width:sr.width/z+'px',margin:0,
+      fontSize:getComputedStyle(src).fontSize, lineHeight:getComputedStyle(src).lineHeight});
+    c.appendChild(g); m.appendChild(c);
+  });
+}
+// one frame. s = {zoom, cy (screen y at frame centre), scroll (page px), bright, focus:{id,amt}, dim, blur, m1, m2}
+function frame(s){
+  const Z=s.zoom;
+  screen.style.zoom=Z;
+  // horizontal fixed: screen centre on frame centre. CSS zoom: left/top in zoomed units
+  screen.style.left=(960/Z - SW/2)+'px';
+  screen.style.top =(540/Z - s.cy)+'px';
+  page.style.top=(-s.scroll)+'px';
+  document.getElementById('marks').style.top=(-s.scroll)+'px';
+  document.getElementById('marks').style.position='absolute';
+  document.body.style.filter=`brightness(${s.bright})`;
+  // per-block focus: blocks = title, date, nav, every p/h2
+  const blocks=[...document.querySelectorAll('.nav,#title,#date,#content>*')];
+  blocks.forEach(b=>{
+    const f=(s.focus[b.dataset.k]??0);   // 0 = background, 1 = in focus
+    const op=s.dim + (1-s.dim)*f;
+    b.style.opacity=op;
+    const bl=s.blur*(1-f);
+    b.style.filter=bl>0.05?`blur(${bl}px)`:'none';
+  });
+  // lit words inside the focused block
+  document.querySelectorAll('.hl').forEach(h=>{
+    const l=s.lit[h.id]??0;
+    h.style.color=`rgba(255,255,255,${0.8+0.2*l})`;
+    h.style.textShadow=l>0?`0 0 6px rgba(255,255,255,${0.35*l})`:'none';
+  });
+  // focused paragraph: only the key sentence stays readable, the rest of it dims to ~30 %
+  document.querySelectorAll('#content>p').forEach(p=>{
+    if(!p.querySelector('.hl')) return;
+    const d=s.restDim[p.dataset.k]??0;
+    p.style.color=`rgba(255,255,255,${0.8-0.5*d})`;
+    p.querySelector('.sent').style.color=`rgba(255,255,255,${0.8+0.2*d})`;
+  });
+  const m=document.getElementById('marks'); m.innerHTML='';
+  if(s.m1>0) buildMarker('hl1',GEO.hl1,s.m1,1,s.mo1??1);
+  if(s.m2>0) buildMarker('hl2',GEO.hl2,s.m2,1,s.mo2??1);
+}
+</script></body></html>
