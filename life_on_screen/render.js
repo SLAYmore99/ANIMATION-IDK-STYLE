@@ -17,7 +17,7 @@ const T = {
   m2: [136, 148],         // marker "a flash of light." once the scroll has settled (on "nuclear")
   black: 166,             // hard cut to black (white-out itself is done in post.py from f156)
 };
-const Z_WIDE = 1600 / 1440, Z_CLOSE = 2.2;
+const Z_WIDE = 1.22, Z_CLOSE = 3.0;   // wide: the monitor nearly fills frame; close: a big depth-of-field crop
 
 // --- curves -----------------------------------------------------------------
 function bezier(x1, y1, x2, y2) {
@@ -50,18 +50,23 @@ function state(f, G) {
   const s = { focus: {}, lit: {}, restDim: {}, m1: 0, m2: 0, mo1: 1, mo2: 1 };
   s.bright = (f >= T.black || (f >= T.gap[0] && f < T.gap[1])) ? 0 : easeOut(prog(f, T.fadeIn));
   s.cy = 405;
-  if (f < T.jumpIn[0]) {                       // wide: the whole screen, title in focus
+  if (f < T.jumpIn[0]) {                       // wide: the monitor, title in focus, slow constant push
     const k = f >= T.jumpOut[0] ? 1 + 0.10 * easeIn((f - T.jumpOut[0] + 1) / 10) : 1;
-    s.zoom = Z_WIDE * k; s.scroll = 0;
-    s.dim = 0.26; s.blur = 0.6;
-    s.focus[1] = 1; s.focus[2] = 0.6;            // title, date
+    const drift = 1 + 0.035 * (Math.min(f, T.jumpOut[0]) / T.jumpOut[0]);
+    s.zoom = Z_WIDE * drift * k; s.scroll = 0; s.cx = 720; s.cy = 330;
+    s.dim = 0.12; s.blur = 1.1;
+    s.focus[1] = 1; s.focus[2] = 0.5;            // title, date
     return s;
   }
+  const partB = f >= T.gap[0];
   const k = 0.9 + 0.1 * easeOut(prog(f, T.jumpIn));
-  s.zoom = Z_CLOSE * k;
+  // slow constant drift-in on each close shot (nothing sits dead still)
+  const drift = partB ? 1 + 0.02 * prog(f, [T.scroll[1], T.black]) : 1 + 0.02 * prog(f, [T.jumpIn[1], T.gap[0]]);
+  s.zoom = Z_CLOSE * k * drift;
+  s.cx = partB ? G.cx2 : G.cx1;               // fixed per shot: the crop is centred on the marked phrase
   const sp = scrollCurve(prog(f, T.scroll));
   s.scroll = (G.y1 - 405) + sp * (G.y2 - G.y1);
-  s.dim = 0.32; s.blur = 1.45;
+  s.dim = 0.16; s.blur = 2.2;
   const leave = 1 - ramp(prog(f, T.scroll), 0, 0.35), arrive = ramp(prog(f, T.scroll), 0.30, 0.72);
   s.focus[G.k1] = leave; s.focus[G.k2] = arrive;
   const p1 = prog(f, T.m1), p2 = prog(f, T.m2);

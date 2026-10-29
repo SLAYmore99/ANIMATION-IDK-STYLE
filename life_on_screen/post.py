@@ -19,6 +19,12 @@ r2 = nx * nx + ny * ny
 K = 0.012
 MAPX = (W / 2 + nx * (1 + K * r2) * (W / 2)).astype(np.float32)
 MAPY = (H / 2 + ny * (1 + K * r2) * (W / 2)).astype(np.float32)
+# a touch of lens/CRT colour fringing toward the edges (red out, blue in), ~1.5 px at the corners
+CA = 0.0016
+MAPS = {c: ((W / 2 + (MAPX - W / 2) * s).astype(np.float32), (H / 2 + (MAPY - H / 2) * s).astype(np.float32))
+        for c, s in ((2, 1 - CA), (1, 1.0), (0, 1 + CA))}       # BGR
+# frame vignette: light from a screen in a dark room falls off toward the corners
+VIG = (1 - 0.30 * np.clip(r2 / 0.75, 0, 1) ** 1.5).astype(np.float32)[..., None]
 
 
 def glow(cv):
@@ -72,7 +78,10 @@ def main():
             cv = cv * (1 + 6 * e) + 255 * e * e
             cv = np.clip(cv, 0, 255)
         cv = glow(cv)
-        cv = cv2.remap(cv, MAPX, MAPY, cv2.INTER_LINEAR, borderValue=0)
+        cv = np.dstack([cv2.remap(np.ascontiguousarray(cv[..., c]), *MAPS[c], cv2.INTER_LINEAR, borderValue=0)
+                        for c in range(3)])
+        if n < WAR:
+            cv = cv * VIG
         cv = np.clip(cv, 0, 255)
         cv2.imwrite(os.path.join(out, os.path.basename(f)), cv.astype(np.uint8))
         cv2.imwrite(os.path.join(out, 'alpha', os.path.basename(f)),

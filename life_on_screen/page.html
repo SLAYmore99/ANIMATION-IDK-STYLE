@@ -9,7 +9,7 @@
 html,body{width:1920px;height:1080px;overflow:hidden;background:#000}
 /* the monitor: 1440x810 logical px, real babuschk.in styles inside */
 #screen{position:absolute;width:1440px;height:810px;overflow:hidden;border-radius:16px;
-  background:#0a0a0b;font-family:'IBM Plex Sans',sans-serif;font-size:18px;color:#fff;
+  background:#040405;box-shadow:inset 0 0 0 1.2px rgba(255,255,255,.10);font-family:'IBM Plex Sans',sans-serif;font-size:18px;color:#fff;
   -webkit-font-smoothing:antialiased}
 #page{position:absolute;left:0;top:0;width:1440px}
 .nav{height:80px;display:flex;align-items:center;justify-content:space-between;padding:0 36px}
@@ -25,7 +25,7 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:#000}
 .dimmable{transition:none}
 /* vignette of the panel itself (screen space) */
 #vig{position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(ellipse 75% 70% at 50% 50%,rgba(0,0,0,0) 55%,rgba(0,0,0,.55) 100%)}
+  background:radial-gradient(ellipse 80% 75% at 50% 45%,rgba(255,255,255,.018) 0%,rgba(0,0,0,0) 60%,rgba(0,0,0,.5) 100%)}
 .bar{position:absolute;border-radius:2.5px;background:#FF7A3D;pointer-events:none}
 .clip{position:absolute;overflow:hidden;pointer-events:none}
 .clip .ghost{position:absolute}
@@ -61,6 +61,7 @@ function init(){
   screen.style.zoom=1; page.style.top='0px';
   [...document.querySelectorAll('.nav,#title,#date,#content>*')].forEach((b,i)=>b.dataset.k=i);
   GEO={hl1:lineRects(document.getElementById('hl1')), hl2:lineRects(document.getElementById('hl2'))};
+  GEO.cx1=GEO.hl1[0].x+GEO.hl1[0].w/2; GEO.cx2=GEO.hl2[0].x+GEO.hl2[0].w/2;
   GEO.y1=GEO.hl1[0].y+GEO.hl1[0].h/2; GEO.y2=GEO.hl2[0].y+GEO.hl2[0].h/2;
   GEO.k1=document.getElementById('hl1').closest('p').dataset.k; GEO.k2=document.getElementById('hl2').closest('p').dataset.k;
   return GEO;
@@ -95,7 +96,7 @@ function frame(s){
   const Z=s.zoom;
   screen.style.zoom=Z;
   // horizontal fixed: screen centre on frame centre. CSS zoom: left/top in zoomed units
-  screen.style.left=(960/Z - SW/2)+'px';
+  screen.style.left=(960/Z - (s.cx??SW/2))+'px';
   screen.style.top =(540/Z - s.cy)+'px';
   page.style.top=(-s.scroll)+'px';
   document.getElementById('marks').style.top=(-s.scroll)+'px';
@@ -120,7 +121,7 @@ function frame(s){
   document.querySelectorAll('#content>p').forEach(p=>{
     if(!p.querySelector('.hl')) return;
     const d=s.restDim[p.dataset.k]??0;
-    p.style.color=`rgba(255,255,255,${0.8-0.5*d})`;
+    p.style.color=`rgba(255,255,255,${0.8-0.58*d})`;
     p.querySelector('.sent').style.color=`rgba(255,255,255,${0.8+0.2*d})`;
   });
   const m=document.getElementById('marks'); m.innerHTML='';
