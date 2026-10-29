@@ -1,7 +1,7 @@
-// Renders raw frames of "Life on Claude Nine, on a screen" (change03 second half, v2).
+// Renders raw frames of "Life on Claude Nine, on a screen" (change03 second half, v3: article only, gap for B-roll).
 // usage: node render.js <outdir> [frames: "all" | "0,40,72" ]
 // Timeline is in frames at 23.976 fps, synced to the VO onsets measured from the v1 clip:
-// Every f60, single f68, step f77 | From f93, inbox ~f112, to the ~f120, brink ~f123, nuclear ~f137, war f156.
+// Every f60, single f68, step f77 | From f93 (B-roll gap f94-122), inbox ~f112, to the ~f120, brink ~f123, nuclear ~f137, war f156.
 const { chromium } = require('playwright');
 const fs = require('fs'), path = require('path');
 
@@ -10,9 +10,11 @@ const T = {
   fadeIn: [0, 10],        // brightness ease-out
   jumpOut: [50, 60],      // JUMP CUT: outgoing 100 -> 110 %, ease-in; hard cut at 60 ("Every")
   jumpIn: [60, 70],       // incoming 90 -> 100 %, ease-out
-  m1: [93, 105],          // marker "email automation system" on "From"
-  scroll: [120, 146],     // scroll to the horizon line ("to the brink of a nuclear")
-  m2: [141, 153],         // marker "a flash of light." starts at 80 % of the scroll
+  m1: [68, 80],           // marker "email automation system" on "single", held to the B-roll cut
+  gap: [94, 123],         // empty: Rachit's Claude terminal B-roll goes here ("From one man's inbox")
+  scroll: [110, 136],     // scroll to the horizon line; it started under the B-roll, so f123 cuts in
+                          // just past peak speed and the tail settles (cut on the speed curve)
+  m2: [136, 148],         // marker "a flash of light." once the scroll has settled (on "nuclear")
   black: 166,             // hard cut to black (white-out itself is done in post.py from f156)
 };
 const Z_WIDE = 1600 / 1440, Z_CLOSE = 2.2;
@@ -46,7 +48,7 @@ const ramp = (x, a, b) => clamp((x - a) / (b - a));
 
 function state(f, G) {
   const s = { focus: {}, lit: {}, restDim: {}, m1: 0, m2: 0, mo1: 1, mo2: 1 };
-  s.bright = f >= T.black ? 0 : easeOut(prog(f, T.fadeIn));
+  s.bright = (f >= T.black || (f >= T.gap[0] && f < T.gap[1])) ? 0 : easeOut(prog(f, T.fadeIn));
   s.cy = 405;
   if (f < T.jumpIn[0]) {                       // wide: the whole screen, title in focus
     const k = f >= T.jumpOut[0] ? 1 + 0.10 * easeIn((f - T.jumpOut[0] + 1) / 10) : 1;
