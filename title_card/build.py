@@ -96,7 +96,7 @@ class Line:
 # ---- the card -----------------------------------------------------------------------------
 TITLE = Line('LIFE ON CLAUDE NINE', FONT_BOLD, cap_px=15, P=5, track=1, cy=500,
              f_in=7, f_out=76, hold=3, color='white')
-SUB = Line('> a short story by igor babuschkin', FONT_MED, cap_px=10, P=2, track=0, cy=602,
+SUB = Line('> a short story by igor babuschkin', FONT_MED, cap_px=8, P=2, track=0, cy=596,
            f_in=20, f_out=78, hold=4, color='orange', out_cells=10)   # 34 small cells: bigger out step so it clears by f86, no fade
 CURSOR = dict(on=46, off=76, blink=12)            # orange block after the subtitle, 12 on / 12 off
 
@@ -140,8 +140,8 @@ def frame(f):
     TITLE.draw(mw, f)
     SUB.draw(mo, f)
     if CURSOR['on'] <= f < CURSOR['off'] and ((f - CURSOR['on']) // CURSOR['blink']) % 2 == 0:
-        P = SUB.P; cx = SUB.x0 + SUB.w + 3 * P; ch = 10 * P
-        mo[SUB.y0 + P:SUB.y0 + P + ch, cx:cx + 5 * P] = 1.0
+        P = SUB.P; cx = SUB.x0 + SUB.w + 3 * P; ch = 8 * P
+        mo[SUB.y0 + P:SUB.y0 + P + ch, cx:cx + 4 * P] = 1.0
     return light(mw, mo)
 
 
